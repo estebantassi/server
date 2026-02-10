@@ -2,6 +2,8 @@ module.exports = (app) => {
     require('./api/auth/oauth/login')(app);
     require('./api/auth/oauth/callback')(app);
 
+    require('./api/getuserprofile')(app);
+
     require('./api/test')(app);
     require('./api/auth/checkauth')(app);
     require('./api/auth/updatetokens')(app);

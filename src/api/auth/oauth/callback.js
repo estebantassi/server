@@ -10,13 +10,11 @@ const crypto = require('crypto');
 const { default: axios } = require('axios');
 const { CompressImage } = require('../../../helpers/compressimage');
 const bucket = require('../../../config/gcs/gcs');
-const { GetImage } = require('../../../helpers/gcstools');
 
 const clientURL = process.env.CLIENT_URL;
 const serverURL = process.env.SERVER_URL;
 const emailHashVersion = process.env.EMAIL_HASH_SECRET_VERSION;
 const emailEncryptedVersion = process.env.EMAIL_ENCRYPTION_SECRET_VERSION;
-const secure = process.env.SECURE;
 
 
 module.exports = (app) => {
@@ -99,7 +97,6 @@ module.exports = (app) => {
             user = {
                 uuid,
                 'username': request.rows[0].username,
-                avatar: "empty"
             };
 
             let accessToken = new Token(user, Token.Type.ACCESS);
@@ -131,27 +128,8 @@ module.exports = (app) => {
                 }
             }
 
-            avatar = request.rows[0].avatar ? `users/${uuid}/avatar` : `Default/avatar`;
-
-            user.avatar = await GetImage(avatar);
-            if (!user.avatar) {
-                await connection.query('ROLLBACK');
-                return res.redirect(errorURL + encodeURIComponent("Error fetching image"));
-            }
-
-            const hostname = new URL(clientURL).hostname;
-            const cookieDomain = "." + hostname;
-
-            res.cookie('user', JSON.stringify(user), {
-                domain: cookieDomain,
-                sameSite: 'Strict',
-                secure: secure,
-                maxAge: process.env.TOKEN_EXP_REFRESH * 60 * 60 * 1000,
-                httpOnly: false
-            });
-
             await connection.query('COMMIT');
-            return res.redirect(clientURL + "/profile?oauth=success");
+            return res.redirect(clientURL + "/profile?oauth=success&data=" + encodeURIComponent(JSON.stringify(user)));
         } catch (err) {
             if (process.env.LOGERRORS === 'true') console.error(err);
             await connection.query('ROLLBACK');
