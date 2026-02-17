@@ -6,17 +6,26 @@ const { setCachedValue, getCachedValue } = require('../config/cache/redis');
 class Token {
     static Type = Object.freeze({
         ACCESS: "access",
-        REFRESH: "refresh"
+        REFRESH: "refresh",
+        LOGIN: "login",
+        VERIFY: "verify"
     });
 
-    constructor(user, type, extra) {
+    static StorageType = Object.freeze({
+        CACHE: "cache",
+        DATABASE: "database",
+        BOTH: "both"
+    });
+
+    constructor(useruuid, type, storage, extra) {
         const version = process.env['TOKEN_SECRET_' + type.toUpperCase() + '_VERSION'];
         const duration = Number(process.env['TOKEN_EXP_' + type.toUpperCase()]) * 60 * 60 * 1000;
         const expirationDate = new Date(Date.now() + duration);
         const jti = crypto.randomUUID();
         const content = {
-            useruuid: user.uuid,
+            useruuid,
             jti,
+            storage,
             ...(extra || {})
         };
         const token = jwt.sign(content, process.env['TOKEN_SECRET_' + type.toUpperCase() + '_V' + version]);
@@ -27,18 +36,19 @@ class Token {
         this.content = content;
         this.version = version;
         this.type = type;
+        this.storage = storage;
     }
 
     async Save(res, database) {
         try {
-            if (this.type == Token.Type.ACCESS) {
-                await setCachedValue(`tokens/${this.type}/${this.content.useruuid}/${this.content.jti}`, this.duration * 60 * 60 + 10, "1");
-            } else {
+            if (this.storage != Token.StorageType.DATABASE)
+                await setCachedValue(`${this.content.useruuid}/tokens/${this.type}/${this.content.jti}`, this.duration * 60 * 60 + 10, "1");
+
+            if (this.storage != Token.StorageType.CACHE && database != null)
                 await database.query(`
                     INSERT INTO tokens (useruuid, type, jti, expires_at)
                     VALUES ($1, $2, $3, $4)
                 `, [this.content.useruuid, this.type, this.content.jti, this.exp]);
-            }
 
             res.cookie('token_' + this.type, this.version + ":" + this.token, {
                 httpOnly: true,
@@ -74,11 +84,13 @@ class Token {
 
             const decode = jwt.verify(token, secret);
             
-            if (type == Token.Type.ACCESS)
+            if (decode.storage != Token.StorageType.DATABASE)
             {
-                const cache = await getCachedValue(`tokens/${type}/${decode.useruuid}/${decode.jti}`);
-                if (cache == null) return null;
-            } else {
+                const cache = await getCachedValue(`${decode.useruuid}/tokens/${type}/${decode.jti}`);
+                if (cache == null && decode.storage == Token.StorageType.CACHE) return null;
+            }
+            
+            if (decode.storage != Token.StorageType.CACHE) {
                 const response = await db.query(`
                     SELECT expires_at FROM tokens
                     WHERE useruuid=$1 AND jti=$2 AND type=$3

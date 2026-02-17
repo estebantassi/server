@@ -80,8 +80,8 @@ module.exports = (app) => {
 
             await connection.query('BEGIN');
             const request = await connection.query(`
-                INSERT INTO users (created_at, hashed_email, encrypted_email, auth_method, username, avatar)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO users (created_at, hashed_email, encrypted_email, auth_method, username, avatar, verified)
+                VALUES ($1, $2, $3, $4, $5, $6, true)
                 ON CONFLICT (hashed_email)
                 DO UPDATE SET hashed_email = users.hashed_email
                 RETURNING uuid, username, auth_method, avatar, (xmax = 0) AS inserted;
@@ -92,20 +92,18 @@ module.exports = (app) => {
                 return res.redirect(errorURL + encodeURIComponent('You already have an account associated with this email using another service (' + request.rows[0].auth_method + ')'));
             }
 
-            const uuid = request.rows[0].uuid;
-
             user = {
-                uuid,
+                uuid: request.rows[0].uuid,
                 'username': request.rows[0].username,
             };
 
-            let accessToken = new Token(user, Token.Type.ACCESS);
-            if (!await accessToken.Save(res, connection)) {
+            const accessToken = new Token(user.uuid, Token.Type.ACCESS, Token.StorageType.CACHE);
+            if (!await accessToken.Save(res, null, true)) {
                 await connection.query('ROLLBACK');
                 return res.redirect(errorURL + encodeURIComponent("Couldn't create a token"));
             }
-            let refreshToken = new Token(user, Token.Type.REFRESH, { "accessjti": accessToken.content.jti });
-            if (!await refreshToken.Save(res, connection)) {
+            const refreshToken = new Token(user.uuid, Token.Type.REFRESH, Token.StorageType.DATABASE, { "accessjti": accessToken.content.jti });
+            if (!await refreshToken.Save(res, connection, false)) {
                 await connection.query('ROLLBACK');
                 return res.redirect(errorURL + encodeURIComponent("Couldn't create a token"));
             }
@@ -114,7 +112,7 @@ module.exports = (app) => {
             if (request.rows[0].inserted && avatar?.data)
             {
                 try {
-                    await bucket.file(`users/${uuid}/avatar`).save(avatar.data, {
+                    await bucket.file(`users/${user.uuid}/avatar`).save(avatar.data, {
                         metadata: {
                             contentType: 'image/webp',
                             cacheControl: 'no-store'

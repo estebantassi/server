@@ -27,7 +27,7 @@ const GetGoogleUser = async (redirectURI, codeVerifier, code) => {
         const payload = ticket.getPayload();
 
         const avatarURL = payload.picture.replace(/=s\d+(-c)?$/, "=s512-c") || null;
-        const username = payload.name || payload.given_name || "User";
+        const username = (payload.name || payload.given_name || "User").slice(0, 30);
         const email = payload.email;
         const verified = payload.email_verified;
 

@@ -28,7 +28,8 @@ const GetDiscordUser = async (redirectURI, codeVerifier, code) => {
         const user = userResponse.data;
         const format = user?.avatar?.startsWith("a_") ? "gif" : "png";
         const defaultAvatar = Number(BigInt(user.id) >> 22n) % 6;
-        const avatarURL = user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${format}?size=512` : `https://cdn.discordapp.com/embed/avatars/${defaultAvatar}.png`;const username = user.global_name || user.username || "User";
+        const avatarURL = user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${format}?size=512` : `https://cdn.discordapp.com/embed/avatars/${defaultAvatar}.png`;
+        const username = (user.global_name || user.username || "User").slice(0, 30);
         const email = user.email;
         const verified = user.verified;
 

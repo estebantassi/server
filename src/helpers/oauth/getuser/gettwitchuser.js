@@ -27,7 +27,7 @@ const GetTwitchUser = async (redirectURI, codeVerifier, code) => {
         });
 
         const avatarURL = userResponse.data.data[0].profile_image_url || null;
-        const username = userResponse.data.data[0].display_name || userResponse.data.data[0].login || "User";
+        const username = (userResponse.data.data[0].display_name || userResponse.data.data[0].login || "User").slice(0, 30);
         const email = userResponse.data.data[0].email;
         const verified = true;
 

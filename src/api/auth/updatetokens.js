@@ -16,15 +16,10 @@ module.exports = (app) => {
                 `, [data.useruuid, data.jti, Token.Type.REFRESH]);
             } catch (err) { if (process.env.LOGERRORS === 'true') console.error(err); }
 
-            const user = {
-                'uuid': data.useruuid,
-                'username': data.username
-            };
-
-            let accessToken = new Token(user, Token.Type.ACCESS);
+            let accessToken = new Token(data.useruuid, Token.Type.ACCESS, Token.StorageType.CACHE);
             if (!await accessToken.Save(res, db)) return res.status(400).json({ message: "Error creating new token" });
 
-            let refreshToken = new Token(user, Token.Type.REFRESH);
+            let refreshToken = new Token(data.useruuid, Token.Type.REFRESH, Token.StorageType.DATABASE);
             if (!await refreshToken.Save(res, db)) return res.status(400).json({ message: "Error creating new token" });
         }
 

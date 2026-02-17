@@ -18,7 +18,7 @@ module.exports = (app) => {
                 `, [data.useruuid, data.jti, Token.Type.REFRESH]);
             } catch (err) { if (process.env.LOGERRORS === 'true') console.error(err); }
 
-            try { await deleteCachedValue(`tokens/${Token.Type.ACCESS}/${data.useruuid}/${data.accessjti}`); }
+            try { await deleteCachedValue(`${data.useruuid}/tokens/${Token.Type.ACCESS}/${data.accessjti}`); }
             catch (err) { if (process.env.LOGERRORS === 'true') console.error(err); }   
         }
 

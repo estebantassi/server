@@ -30,7 +30,7 @@ const GetGitlabUser = async (redirectURI, codeVerifier, code) => {
         });
 
         const avatarURL = payload.picture || null;
-        const username = payload.nickname || payload.preferred_username || "User";
+        const username = (payload.nickname || payload.preferred_username || "User").slice(0, 30);
         const email = payload.email;
         const verified = payload.email_verified;
 

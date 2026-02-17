@@ -34,7 +34,7 @@ const GetGithubUser = async (redirectURI, codeVerifier, code) => {
         const primaryEmailObj = emailResponse.data.find(e => e.primary && e.verified);
 
         const avatarURL = userResponse.data.avatar_url ? userResponse.data.avatar_url + "?s=512" : null;
-        const username = userResponse.data.name || userResponse.data.login || "User";
+        const username = (userResponse.data.name || userResponse.data.login || "User").slice(0, 30);
         const email = primaryEmailObj.email;
         const verified = primaryEmailObj != null;
 
