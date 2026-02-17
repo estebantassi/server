@@ -4,7 +4,7 @@ function validateUUID(uuid) {
 
 function validateEmail(email) {
 	const reg = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-	return email != null && email.test(reg);
+	return email != null && reg.test(email);
 }
 
 const usernameMinLength = process.env.USERNAME_MIN_LENGTH;
