@@ -5,6 +5,8 @@ const { transporter } = require("../../../config/mail/mailtransport");
 const { setCachedValue } = require("../../../config/cache/redis");
 const Token = require("../../../helpers/token");
 const { validateEmail, validateUsername, validateSRPSalt, validateSRPVerifier } = require("../../../helpers/validate/validate");
+const { GetClientIP } = require("../../../helpers/ip");
+const { ValidateTurnstile } = require("../../../helpers/validate/turnstile");
 
 const emailHashVersion = process.env.EMAIL_HASH_SECRET_VERSION;
 const emailEncryptedVersion = process.env.EMAIL_ENCRYPTION_SECRET_VERSION;
@@ -23,6 +25,11 @@ module.exports = (app) => {
         if (!validateUsername(username)) return res.status(400).json({ message: "Invalid username format" });
         if (!validateSRPSalt(srpSalt)) return res.status(400).json({ message: "Invalid salt format" });
         if (!validateSRPVerifier(srpVerifier)) return res.status(400).json({ message: "Invalid verifier format" });;
+
+        //TURNSTILE
+        const ip = GetClientIP(req);
+        const turnstile = ValidateTurnstile(req?.body?.turnstileToken, ip);
+        if (!turnstile) return res.status(400).json({ message: "Error resolving CAPTCHA" });
 
         const connection = await db.connect();
         try {
